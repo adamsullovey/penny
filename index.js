@@ -24,6 +24,10 @@ const RtmClient = require("@slack/client").RtmClient;
 const CLIENT_EVENTS = require("@slack/client").CLIENT_EVENTS;
 const RTM_EVENTS = require("@slack/client").RTM_EVENTS;
 
+// FOR SCHEDULED DRAWING PROMPTS
+const ScheduledPrompt = require("./scheduled-prompt");
+const simplePromptGenerator = require("./simple-prompt-generator");
+
 // CONSTANTS
 const rl = readline.createInterface({
   input: process.stdin,
@@ -79,8 +83,25 @@ function init_bot() {
 
   // Handle the connection opening
   rtm.on(CLIENT_EVENTS.RTM.RTM_CONNECTION_OPENED, function() {
-    // rtm.sendMessage("Hello I am Penny, I just connected from the server!", 'C63GFH05V');
+    rtm.sendMessage(
+      "Hello I am Penny, I just connected from the server!",
+      "C63GFH05V"
+    );
   });
 
   rtm.start();
+
+  /*** Scheduled prompt setup ***/
+  const scheduledPrompt = new ScheduledPrompt({
+    cronSchedule: "*/30 * * * * *",
+    promptGenerator: simplePromptGenerator
+  });
+
+  // listen for new prompts
+  scheduledPrompt.on(ScheduledPrompt.PROMPT_EVENT, function(prompt) {
+    console.log("here's the prompt:", prompt);
+
+    // send the prompt to the hardcoded #draw_it channel
+    rtm.sendMessage(prompt, "C63GFH05V");
+  });
 }
