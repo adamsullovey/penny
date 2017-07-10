@@ -107,7 +107,7 @@ function init_bot() {
 
   /*** Scheduled prompt setup ***/
   const scheduledPrompt = new ScheduledPrompt({
-    cronSchedule: "*/10 * * * * *",
+    cronSchedule: "1 31 * * * *",
     promptGenerator: simplePromptGenerator
   });
 
