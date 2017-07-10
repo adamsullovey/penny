@@ -83,25 +83,53 @@ function init_bot() {
 
   // Handle the connection opening
   rtm.on(CLIENT_EVENTS.RTM.RTM_CONNECTION_OPENED, function() {
+    /*
     rtm.sendMessage(
       "Hello I am Penny, I just connected from the server!",
       "C63GFH05V"
     );
+    */
   });
+
+  // Handle the connection opening
+  rtm.on(CLIENT_EVENTS.RTM.RTM_CONNECTION_OPENED, function() {
+    /*
+    rtm.sendMessage(
+      "Hello I am Penny, I just connected from the server!",
+      "C63GFH05V"
+    );
+    */
+  });
+
+  // rtm.on(CLIENT_EVENTS.RTM., function() {
 
   rtm.start();
 
   /*** Scheduled prompt setup ***/
   const scheduledPrompt = new ScheduledPrompt({
-    cronSchedule: "*/30 * * * * *",
+    cronSchedule: "*/10 * * * * *",
     promptGenerator: simplePromptGenerator
   });
 
-  // listen for new prompts
+  // start listening for new prompts
   scheduledPrompt.on(ScheduledPrompt.PROMPT_EVENT, function(prompt) {
-    console.log("here's the prompt:", prompt);
+    // console.log("here's the prompt:", prompt);
+
+    /**
+     * Don't bother sending messages if bot is disconnected. Doing that
+     * repeatedly leads to errors.
+     *
+     * Sometimes `connected` is incorrect, maybe it is only updated when a
+     * message fails to go through? I haven't seen sending a message cause a
+     * crash when connected is `true` but internet connection is disabled.
+     * Crashes happen when connected is `false` and my internet connection is
+     * disabled.
+     */
+    if (!rtm.connected) return;
 
     // send the prompt to the hardcoded #draw_it channel
-    rtm.sendMessage(prompt, "C63GFH05V");
+    rtm.sendMessage(prompt, "C63GFH05V").catch(error => {
+      console.error("error sending message", error);
+    });
   });
 }
