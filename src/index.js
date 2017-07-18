@@ -1,5 +1,4 @@
-/*
- Welcome and Intro
+/* Welcome and Intro
    - This is the entry file where our slack bot is created and initialized.
    - If you get lost, looks for big comment blocks like this one, and read them.
    - If you get lost, ask questions in our slack channel: https://penny-woyvoplzst.now.sh/
@@ -8,125 +7,74 @@
  * Project Resources *
    - Node Slack SDK / API resources : https://slackapi.github.io/node-slack-sdk/
    - Node Slack SDK RTM examples: https://github.com/slackapi/node-slack-sdk
-   - If you are unsure of how to contribute to open source, please checkout this resource:
-   - http://theheap.us/page/resources/
+   - If you are unsure of how to contribute to open source, please checkout this resource: http://theheap.us/page/resources/
   =========================== */
+
+// TODO:   // refactor: this should be a function so we can dynamically get set prompts?,
 
 // ===========================
 // Project setup!
 // ===========================
 
 // NATIVE NODE LIBRARIES
-const readline = require("readline"); // for pasting the slack_bot_token if it wasn't exported to env
-const fs = require("fs"); // final system
-
-// THIRD PARTY LIBRARIES
+const readline = require("readline");
+const fs = require("fs");
 const RtmClient = require("@slack/client").RtmClient;
-const CLIENT_EVENTS = require("@slack/client").CLIENT_EVENTS;
-const RTM_EVENTS = require("@slack/client").RTM_EVENTS;
+
+// HELPERS FOR THIS PROJECT
+const rtmHandlers = require("./rtm-handlers");
+const prompts = require("./prompt-handlers");
 
 // FOR SCHEDULED DRAWING PROMPTS
 const ScheduledPrompt = require("./scheduled-prompt");
 const simplePromptGenerator = require("./simple-prompt-generator");
 
 // CONSTANTS
-const rl = readline.createInterface({
+const READLINE = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-// VARIABLES
-var bot_token = process.env.SLACK_BOT_TOKEN || "";
-
-//GLOBALS
-var global = {
-  penny: undefined
+// env == Envelope. Holds all our domain data. Important!
+// This object gets passed around a lot in function params.
+var env = {
+  prompts: prompts.load(), // write function that reloads this?
+  rtm: rtmHandlers.createClient(), // create new RTM client for all handlers.
+  penny: undefined, // Our bot and all it's properties.
+  channel: undefined // the channel(s) penny can live in.
 };
 
 // check if slack bot token env var exists before booting the program
 if (process.env.SLACK_BOT_TOKEN) {
   init_bot();
 } else {
-  rl.question("Please provide your SLACK_BOT_TOKEN for your team: ", answer => {
-    bot_token = answer;
-    rl.close();
-    init_bot();
-  });
+  READLINE.question(
+    "Please provide your SLACK_BOT_TOKEN for your team: ",
+    answer => {
+      bot_token = answer;
+      READLINE.close();
+      init_bot();
+    }
+  );
 }
 
 // ===========================
 // Bot setup!
 // ===========================
 
+/**
+ * This function sets up and runs our bot. 
+ */
 function init_bot() {
   console.log("Initializing Penny...");
-  var prompts = fs.readFileSync("prompts.json", "utf8");
-  console.log(prompts);
 
-  /*** BOT variables and Constants ***/
-
-  var rtm = new RtmClient(bot_token);
-  let channel;
-
-  /*** Real Time Event Handlers ***/
-
-  // Function to handle the bot's authentication:
-  // Sets the channel that Penny can activate in.
-  // TODO: Allow penny to operate in multiple channels
-  rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function(rtmStartData) {
-    console.log(
-      `Starting ${rtmStartData.self.name} for  ${rtmStartData.team.name}`
-    );
-    for (let c of rtmStartData.channels) {
-      if (c.is_member && c.name === "draw_it") {
-        channel = c.log;
-      }
-    }
-
-    // Find penny and assign to the global object
-
-    for (let u of rtmStartData.users) {
-      if (u.name === "penny_bot") {
-        global.penny = u;
-        console.log(global.penny);
-      }
-    }
-  });
-
-  // Handle receiving a message
-  // Check if the message includes penny's ID. If it does, send a message to the draw_it channel
-  rtm.on(RTM_EVENTS.MESSAGE, function handleRtmMessage(message) {
-    if (message.text.includes(`<@${global.penny.id}>`)) {
-      console.log(global.penny.id);
-      rtm.sendMessage("Test", "C63GFH05V");
-    }
-  });
-
-  // Handle the connection opening
-  rtm.on(CLIENT_EVENTS.RTM.RTM_CONNECTION_OPENED, function() {
-    /*
-    rtm.sendMessage(
-      "Hello I am Penny, I just connected from the server!",
-      "C63GFH05V"
-    );
-    */
-  });
-
-  // Handle the connection opening
-  rtm.on(CLIENT_EVENTS.RTM.RTM_CONNECTION_OPENED, function() {
-    /*
-    rtm.sendMessage(
-      "Hello I am Penny, I just connected from the server!",
-      "C63GFH05V"
-    );
-    */
-  });
-
-  // rtm.on(CLIENT_EVENTS.RTM., function() {
-
-  rtm.start();
+  // rtmHandlers (real time message handlers)
+  rtmHandlers.onAuthentication(env);
+  rtmHandlers.onReceiveMessage(env);
+  rtmHandlers.startRtm(env);
 
   /*** Scheduled prompt setup ***/
+  // TODO: move to a new file -> handleScheduling or something like that.
   const scheduledPrompt = new ScheduledPrompt({
     cronSchedule: "1 31 * * * *",
     promptGenerator: simplePromptGenerator
@@ -146,10 +94,10 @@ function init_bot() {
      * Crashes happen when connected is `false` and my internet connection is
      * disabled.
      */
-    if (!rtm.connected) return;
+    if (!env.rtm.connected) return;
 
     // send the prompt to the hardcoded #draw_it channel
-    rtm.sendMessage(prompt, "C63GFH05V").catch(error => {
+    env.rtm.sendMessage(prompt, "C63GFH05V").catch(error => {
       console.error("error sending message", error);
     });
   });
