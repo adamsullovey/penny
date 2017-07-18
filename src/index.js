@@ -23,7 +23,6 @@ const RtmClient = require("@slack/client").RtmClient;
 const rtmHandlers = require("./rtm-handlers");
 const prompts = require("./prompt-handlers");
 const ScheduledPrompt = require("./scheduled-prompt");
-const simplePromptGenerator = require("./simple-prompt-generator");
 
 // CONSTANTS
 const READLINE = readline.createInterface({
@@ -72,8 +71,9 @@ function init_bot() {
   /*** Scheduled prompt setup ***/
   // TODO: move to a new file -> handleScheduling or something like that.
   const scheduledPrompt = new ScheduledPrompt({
+    // cronSchedule: "*/2 * * * * *",
     cronSchedule: "1 31 * * * *",
-    promptGenerator: simplePromptGenerator
+    env
   });
 
   // start listening for new prompts
