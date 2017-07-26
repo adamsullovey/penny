@@ -4,7 +4,8 @@ function setupScheduledPrompts(env) {
   /*** Scheduled prompt setup ***/
   const scheduledPrompt = new ScheduledPrompt({
     // cronSchedule: "*/2 * * * * *", // make prompt every 2 seconds for testing
-    cronSchedule: "0 30 * * * *", // make 1 prompt on the 30th minute of each hour
+    // cronSchedule: "0 30 * * * *", // make 1 prompt on the 30th minute of each hour
+    cronSchedule: "0 0 16 * * 1-5", // weekdays only at 16:00 UTC
     env
   });
 
