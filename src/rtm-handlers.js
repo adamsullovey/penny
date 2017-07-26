@@ -1,5 +1,6 @@
 const fs = require("fs");
 const prompts = require("./prompt-handlers");
+const drawings = require("./drawing-handlers");
 const RtmClient = require("@slack/client").RtmClient;
 const CLIENT_EVENTS = require("@slack/client").CLIENT_EVENTS;
 const RTM_EVENTS = require("@slack/client").RTM_EVENTS;
@@ -38,10 +39,27 @@ function onOpenConnection(env) {
 // Handle receiving a message
 // Check if the message includes penny's ID. If it does, send a message to the draw_it channel
 function onReceiveMessage(env) {
+  // this function is nested in onReceiveMessage for easy access to the env variable
+  function handleDrawingSubmission(message) {
+    // console.log('handleDrawingSubmission', message.file);
+    if (!message.file) {
+      env.rtm.sendMessage("Where is drawing?", message.channel);
+    } else {
+      env.rtm.sendMessage("Got drawing!", message.channel);
+
+      drawings
+        .addImageToList(message.file)
+        .then(result => console.log("saved image info", result))
+        .catch(error => console.error("error", error));
+    }
+  }
+
   env.rtm.on(RTM_EVENTS.MESSAGE, function handleRtmMessage(message) {
     function checkMessage(msg) {
       return message.text.includes(msg);
     }
+
+    console.log(message);
 
     // TODO: Turn this into a nice ol' switch case
     if (message.text.includes(`<@${env.penny.id}>`)) {
@@ -77,13 +95,23 @@ function onReceiveMessage(env) {
           responseText =
             "Hi I'm Penny; I can do the following if you `@` mention me!\n";
           responseText += "`@penny_bot give prompt` \n";
-          responseText += "`@penny_bot, submit prompt '<your prompt here>'`";
+          responseText += "`@penny_bot, submit prompt '<your prompt here>'`\n ";
+          responseText +=
+            "You can also DM me your drawings as attachments with the comment `submit drawing`";
 
           // Channel to respond in
           message.channel == "C63GFH05V"
             ? env.rtm.sendMessage(responseText, "C63GFH05V")
             : env.rtm.sendMessage(responseText, message.channel);
       }
+    }
+
+    /**
+     * DMs to penny with attachments might not include penny's user id in the
+     * message, so this check happens outside the other if statement
+     */
+    if (checkMessage("submit drawing") && message.channel === "D63S3TAM7") {
+      handleDrawingSubmission(message);
     }
   });
 }
