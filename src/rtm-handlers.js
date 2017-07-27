@@ -39,21 +39,6 @@ function onOpenConnection(env) {
 // Handle receiving a message
 // Check if the message includes penny's ID. If it does, send a message to the draw_it channel
 function onReceiveMessage(env) {
-  // this function is nested in onReceiveMessage for easy access to the env variable
-  function handleDrawingSubmission(message) {
-    // console.log('handleDrawingSubmission', message.file);
-    if (!message.file) {
-      env.rtm.sendMessage("Where is drawing?", message.channel);
-    } else {
-      env.rtm.sendMessage("Got drawing!", message.channel);
-
-      drawings
-        .addImageToList(message.file)
-        .then(result => console.log("saved image info", result))
-        .catch(error => console.error("error", error));
-    }
-  }
-
   env.rtm.on(RTM_EVENTS.MESSAGE, function handleRtmMessage(message) {
     function checkMessage(msg) {
       return message.text.includes(msg);
@@ -111,9 +96,23 @@ function onReceiveMessage(env) {
      * message, so this check happens outside the other if statement
      */
     if (checkMessage("submit drawing") && message.channel === "D63S3TAM7") {
-      handleDrawingSubmission(message);
+      handleDrawingSubmission(env, message);
     }
   });
+}
+
+function handleDrawingSubmission(env, message) {
+  // console.log('handleDrawingSubmission', message.file);
+  if (!message.file) {
+    env.rtm.sendMessage("Where is drawing?", message.channel);
+  } else {
+    env.rtm.sendMessage("Got drawing!", message.channel);
+
+    drawings
+      .addImageToList(message.file)
+      .then(result => console.log("saved image info", result))
+      .catch(error => console.error("error", error));
+  }
 }
 
 function startRtm(env) {
