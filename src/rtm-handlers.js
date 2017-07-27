@@ -44,8 +44,6 @@ function onReceiveMessage(env) {
       return message.text.includes(msg);
     }
 
-    console.log(message);
-
     // TODO: Turn this into a nice ol' switch case
     if (message.text.includes(`<@${env.penny.id}>`)) {
       let responseText = "";
