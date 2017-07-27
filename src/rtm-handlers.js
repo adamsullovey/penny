@@ -101,10 +101,16 @@ function onReceiveMessage(env) {
   });
 }
 
+const validFileTypes = ["jpg", "png", "gif"];
+
 function handleDrawingSubmission(env, message) {
-  // console.log('handleDrawingSubmission', message.file);
   if (!message.file) {
     env.rtm.sendMessage("Where is drawing?", message.channel);
+  } else if (message.file && !validFileTypes.includes(message.file.filetype)) {
+    env.rtm.sendMessage(
+      "I don't think you attached a drawing. Make sure you send me a .png, .jpg, or .gif",
+      message.channel
+    );
   } else {
     env.rtm.sendMessage("Got drawing!", message.channel);
 
